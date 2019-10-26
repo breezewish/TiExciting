@@ -39,7 +39,7 @@ class ResultCallback(CallbackBase):
 
 class AnsibleTask(object):
 
-    def __init__(self, module, command, group='all'):
+    def __init__(self, module, command, group='localhost'):
         self.module = module
         self.command = command
         self.group = group
