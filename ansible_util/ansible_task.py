@@ -85,9 +85,10 @@ class AnsibleTask(object):
 
         for host, result in self.results_callback.ok.items():
             info = {}
-            if self.module=='shell':
+            if self.module == 'shell':
                 info['stdout'] = result._result['stdout']
-                info['delta'] = result._result['delta']
+            elif self.module == 'stat':
+                info['stat'] = result._result['stat']
             result_all['success'][host] = info
 
         for host, result in self.results_callback.failed.items():
