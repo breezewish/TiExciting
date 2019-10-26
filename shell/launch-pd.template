@@ -1,7 +1,9 @@
 #!/bin/sh
 
-mkdir -p ./data1/deploy_v3.0.3/data.pd/
-mkdir -p ./data1/deploy_v3.0.3/log/
+mkdir -p <data_dir>/deploy_v3.0.3/data.pd/
+mkdir -p <data_dir>/deploy_v3.0.3/log/
+
+cd ~/TiExciting/pd
 
 if test -f "pid"; then
   echo "pd-server running, kill pd..."
@@ -10,11 +12,11 @@ if test -f "pid"; then
 fi
 
 nohup ./pd-server \
-    --name="pd_xiaohou-vm1" \
-    --client-urls="http://192.168.233.128:2379" \
-    --advertise-client-urls="http://192.168.233.128:2379" \
-    --peer-urls="http://192.168.233.128:2380" \
-    --advertise-peer-urls="http://192.168.233.128:2380" \
-    --data-dir="./data1/deploy_v3.0.3/data.pd" \
-    --initial-cluster="pd_xiaohou-vm1=http://192.168.233.128:2380" \
-    --log-file="./data1/deploy_v3.0.3/log/pd.log" 2>> "./data1/deploy_v3.0.3/log/pd_stderr.log" & echo $! > pid
+    --name="<uid>" \
+    --client-urls="http://<server_ip>:<status_port>" \
+    --advertise-client-urls="http://<server_ip>:<status_port>" \
+    --peer-urls="http://<server_ip>:<server_port>" \
+    --advertise-peer-urls="http://<server_ip>:<server_port>" \
+    --data-dir="<data_dir>/deploy_v3.0.3/data.pd" \
+    --initial-cluster="<pd_cluster>" \
+    --log-file="<data_dir>/deploy_v3.0.3/log/pd.log" 2>> "<data_dir>/deploy_v3.0.3/log/pd_stderr.log" & echo $! > pid

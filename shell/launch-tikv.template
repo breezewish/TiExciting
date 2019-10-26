@@ -1,7 +1,9 @@
 #!/bin/sh
 
-mkdir -p ./data1/deploy_v3.0.3/data.pd/
-mkdir -p ./data1/deploy_v3.0.3/log/
+mkdir -p <data_dir>/deploy_v3.0.3/data.pd/
+mkdir -p <data_dir>/deploy_v3.0.3/log/
+
+cd ~/TiExciting/tikv
 
 if test -f "pid"; then
   echo "tikv-server running, kill pd..."
@@ -10,9 +12,9 @@ if test -f "pid"; then
 fi
 
 nohup ./tikv-server \
-    --addr "0.0.0.0:20160" \
-    --advertise-addr "192.168.233.129:20160" \
-    --status-addr "192.168.233.129:20180" \
-    --pd "192.168.233.128:2379" \
-    --data-dir "./data1/deploy_v3.0.3/data" \
-    --log-file "./data1/deploy_v3.0.3/log/tikv.log" 2>> "./data1/deploy_v3.0.3/log/tikv_stderr.log" & echo $! > pid
+    --addr "0.0.0.0:<server_port>" \
+    --advertise-addr "<server_ip>:<server_port>" \
+    --status-addr "<server_ip>:<status_port>" \
+    --pd "<pd_cluster>" \
+    --data-dir "<data_dir>/deploy_v3.0.3/data" \
+    --log-file "<data_dir>/deploy_v3.0.3/log/tikv.log" 2>> "<data_dir>/deploy_v3.0.3/log/tikv_stderr.log" & echo $! > pid

@@ -12,22 +12,42 @@ TIDB_SHA256_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.sha256' % TID
 TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
 
 
-def gen_pd_script():
-    pass
+def gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster):
+    pd_cluster = ','.join(['http://%s:%d' % server for server in pd_cluster])
+    template = template.replace('<uid>', uid)
+    template = template.replace('<data_dir>', data_dir)
+    template = template.replace('<server_ip>', server_ip)
+    template = template.replace('<server_port>', str(server_port))
+    template = template.replace('<status_port>', str(status_port))
+    template = template.replace('<pd_cluster>', pd_cluster)
+    return template
 
 
-def gen_tidb_script():
-    pass
+def gen_pd_script(uid, data_dir, server_ip, server_port, status_port, pd_cluster):
+    with open('../shell/launch-pd.template', 'r') as f:
+        template = f.read()
+    return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
 
 
-def gen_tikv_script():
-    pass
+def gen_tidb_script(uid, data_dir, server_ip, server_port, status_port, pd_cluster):
+    with open('../shell/launch-tidb.template', 'r') as f:
+        template = f.read()
+    return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
+
+
+def gen_tikv_script(uid, data_dir, server_ip, server_port, status_port, pd_cluster):
+    with open('../shell/launch-tikv.template', 'r') as f:
+        template = f.read()
+    return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
 
 
 '''
 {
-
-
+  "dir": "xxx",
+  "status_port": 123,
+  "server_port": 456,
+  "pd_cluster_ip_uid": {"ip_port": "uid1"},
+  "uid": "ip:uid"
 }
 '''
 
@@ -88,3 +108,22 @@ def deploy(config):
 
 if __name__ == '__main__':
     deploy()
+    print(gen_pd_script('pd_xiaohou', '~/data1', '192.168.233.128', 2379, 2380,
+                        [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
+    print(gen_tidb_script('pd_xiaohou', '~/data1', '192.168.233.128', 4000, 10080,
+                          [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
+    print(gen_tikv_script('pd_xiaohou', '~/data1', '192.168.233.129', 20160, 20180,
+                          [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
+
+'''
+{
+  "task_id": 1,
+  "config": {} # 配置信息
+  "task": [{
+    "step": 1
+    "module": "xxx",
+    "arg": "xxx",
+    "deps": [1, 2, 3]
+  }]
+}
+'''
