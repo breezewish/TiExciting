@@ -97,7 +97,8 @@ class AnsibleTask(object):
         for host, result in self.results_callback.unreachable.items():
             result_all['unreachable'][host] = result._result.get('msg') or result._result
 
-        return json.dumps(result_all, ensure_ascii=False, sort_keys=True, indent=2)
+        return result_all
+        # return json.dumps(result_all, ensure_ascii=False, sort_keys=True, indent=2)
 
 
 context.CLIARGS = ImmutableDict(connection='smart', module_path=None, forks=10, become=None,
