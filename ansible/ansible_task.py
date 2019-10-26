@@ -15,9 +15,8 @@ import ansible.constants as C
 
 class ResultCallback(CallbackBase):
 
-    def __init__(self, *args, **kwargs):
-        super(ResultCallback, self).__init__(display=None)
-        # super().__init__(args, kwargs)
+    def __init__(self):
+        super(ResultCallback, self).__init__()
         self.ok = {}
         self.failed = {}
         self.unreachable = {}
@@ -29,7 +28,8 @@ class ResultCallback(CallbackBase):
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
         host = result._host.get_name()
-        self.failed[host] = self._dump_results(result._result)
+        print(host, result._result)
+        self.failed[host] = result
         super().v2_runner_on_failed(result, ignore_errors=False)
 
     def v2_runner_on_unreachable(self, result):
@@ -56,7 +56,7 @@ class AnsibleTask(object):
         # create play with tasks
         play_source = dict(
             name="Ansible Play",
-            hosts='all',
+            hosts='Client1',
             gather_facts='no',
             tasks=[
                 dict(action=dict(module=self.module, args=self.command), register='shell_out'),
@@ -85,24 +85,25 @@ class AnsibleTask(object):
 
         for host, result in self.results_callback.ok.items():
             info = {}
-            info['stdout'] = result._result['stdout']
-            info['delta'] = result._result['delta']
+            if self.module=='shell':
+                info['stdout'] = result._result['stdout']
+                info['delta'] = result._result['delta']
             result_all['success'][host] = info
 
         for host, result in self.results_callback.failed.items():
-            if 'msg' in result._result:
-                result_all['failed'][host] = result._result['msg']
+            result_all['failed'][host] = result._result.get('msg') or result._result
 
         for host, result in self.results_callback.unreachable.items():
-            if 'msg' in result._result:
-                result_all['failed'][host] = result._result['msg']
+            result_all['unreachable'][host] = result._result.get('msg') or result._result
 
         return json.dumps(result_all, ensure_ascii=False, sort_keys=True, indent=2)
 
 
-context.CLIARGS = ImmutableDict(connection='local', module_path=None, forks=10, become=None,
-                                become_method=None, become_user=None, check=False, diff=False)
+context.CLIARGS = ImmutableDict(connection='smart', module_path=None, forks=10, become=None,
+                                become_method=None, become_user=None, check=False, diff=False, verbosity=1)
 
 if __name__ == '__main__':
-    res = AnsibleTask('shell', 'hostname')
+    res = AnsibleTask('shell', 'ls ~')
+    # res = AnsibleTask('shell', 'hostname')
+    # res = AnsibleTask("copy", "src=./hosts dest=~/")
     print(res.get_result())

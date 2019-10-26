@@ -51,8 +51,7 @@ play_source = dict(
     hosts='Client1',
     gather_facts='no',
     tasks=[
-        dict(action=dict(module='shell', args='hostname'), register='shell_out'),
-        dict(action=dict(module='debug', args=dict(msg='{{shell_out.stdout}}')))
+        dict(action=dict(module='copy', args='src=./hosts dest=~/'))
     ]
 )
 play = Play().load(play_source, variable_manager=variable_manager, loader=loader)
