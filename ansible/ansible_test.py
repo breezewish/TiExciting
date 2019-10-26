@@ -42,13 +42,13 @@ passwords = dict(vault_pass='secret')
 results_callback = ResultCallback()
 
 # create inventory and pass to var manager
-inventory = InventoryManager(loader=loader, sources=['./hosts'])
+inventory = InventoryManager(loader=loader, sources=['/etc/ansible/hosts'])
 variable_manager = VariableManager(loader=loader, inventory=inventory)
 
 # create play with tasks
 play_source = dict(
     name="Ansible Play",
-    hosts='test01',
+    hosts='Client1',
     gather_facts='no',
     tasks=[
         dict(action=dict(module='shell', args='hostname'), register='shell_out'),
