@@ -18,7 +18,7 @@ def deploy():
     result = task.get_result()
     print(result)
     sha256 = result['success']['localhost']['stdout']
-    task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=%s' % (TIDB_URL, sha256), 'localhost')
+    task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256), 'localhost')
     print(task.get_result())
 
 
