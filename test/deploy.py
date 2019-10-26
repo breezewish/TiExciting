@@ -41,6 +41,11 @@ def gen_tikv_script(uid, data_dir, server_ip, server_port, status_port, pd_clust
     return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
 
 
+def write_to_file(path, content):
+    with open(path, 'w') as f:
+        f.write(content)
+
+
 '''
 {
   "dir": "xxx",
@@ -93,17 +98,23 @@ def deploy(config):
     print(task.get_result())
 
     # 6. 生成执行脚本
+    write_to_file('/tmp/launch.sh', gen_pd_script('pd_xiaohou', '~/data1', '192.168.233.128', 2380, 2379,
+                                                  [('192.168.233.128', 2380)]))
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, '192.168.233.128')
+    print(task.get_result())
+    task = AnsibleTask('shell', 'bash ~/TiExciting/pd/launch.sh', 'pd_servers')
+    print(task.get_result())
 
     # write to tmp
     # copy to server
 
     # 7. 执行命令
 
-    task = AnsibleTask('shell', '', 'pd_servers')
+    # task = AnsibleTask('shell', '', 'pd_servers')
 
-    task = AnsibleTask('shell', '', 'tikv_servers')
+    # task = AnsibleTask('shell', '', 'tikv_servers')
 
-    task = AnsibleTask('shell', '', 'tidb_servers')
+    # task = AnsibleTask('shell', '', 'tidb_servers')
 
 
 if __name__ == '__main__':
