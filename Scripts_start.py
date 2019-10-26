@@ -8,7 +8,7 @@ import sys
 def main():
     args = parse_args()
     '''scripts for pd'''
-    IP = args.uid.split(":")[0]
+    server_ip = args.uid.split(":")[0]
     uid = args.uid.split(":")[1]
     cluster_name_url = ""
     cluster_pd_api = ""
@@ -24,11 +24,11 @@ def main():
             cluster_name_url += cluster_url[pd_ip] + f"=http://{pd_ip_port}"
             cluster_pd_api += f"{pd_ip_port}"
     if args.type == 'PD':
-        Script = f"bin/pd-server \ \n    --name=\"{uid}\" \ \n    --client-urls=\"http://{IP}:{args.status_port}\" \ \n    --advertise-client-urls=\"http://{IP}:{args.status_port}\" \ \n    --peer-urls=\"http://{IP}:{args.server_port}\" \ \n    --advertise-peer-urls=\"{IP}:{args.server_port}\" \ \n    --data-dir=\"{args.dir}/data.pd\" \ \n    --initial-cluster=\"{cluster_name_url}\" \ \n    --config=conf/pd.toml \ \n    --log-file=\"{args.dir}/log/pd.log\" 2>> \"{args.dir}/log/pd_stderr.log\"\n"
+        Script = f"bin/pd-server \ \n    --name=\"{uid}\" \ \n    --client-urls=\"http://{server_ip}:{args.status_port}\" \ \n    --advertise-client-urls=\"http://{server_ip}:{args.status_port}\" \ \n    --peer-urls=\"http://{server_ip}:{args.server_port}\" \ \n    --advertise-peer-urls=\"{server_ip}:{args.server_port}\" \ \n    --data-dir=\"{args.dir}/data.pd\" \ \n    --initial-cluster=\"{cluster_name_url}\" \ \n    --config=conf/pd.toml \ \n    --log-file=\"{args.dir}/log/pd.log\" 2>> \"{args.dir}/log/pd_stderr.log\"\n"
     elif args.type == "TIKV":
-        Script = f"bin/tikv-server \ \n    --addr \"0.0.0.0:{args.status_port}\" \ \n    --advertise-addr \"{IP}:{args.status_port}\" \ \n    --status-addr \"{IP}:{args.server_port}\" \ \n    --pd \"{cluster_pd_api}\" \ \n    --data-dir \"{args.dir}/data\" \ \n    --config conf/tikv.toml \ \n    --log-file \"{args.dir}/log/tikv.log\" 2>> \"{args.dir}/log/tikv_stderr.log\" \n"
+        Script = f"bin/tikv-server \ \n    --addr \"0.0.0.0:{args.status_port}\" \ \n    --advertise-addr \"{server_ip}:{args.status_port}\" \ \n    --status-addr \"{server_ip}:{args.server_port}\" \ \n    --pd \"{cluster_pd_api}\" \ \n    --data-dir \"{args.dir}/data\" \ \n    --config conf/tikv.toml \ \n    --log-file \"{args.dir}/log/tikv.log\" 2>> \"{args.dir}/log/tikv_stderr.log\" \n"
     elif args.type == "TIDB":
-        Script = f"bin/tidb-server \ \n    -P {args.server_port} \ \n    --status=\"{args.status_port}\" \ \n    --advertise-address=\"{IP}\" \ \n    --path=\"{cluster_pd_api}\" \ \n    --config=conf/tidb.toml \ \n    --log-slow-query=\"{args.dir}/log/tidb_slow_query.log\" \ \n    --log-file=\"{args.dir}/log/tidb.log\" 2>> \"{args.dir}/log/tidb_stderr.log\" \n"
+        Script = f"bin/tidb-server \ \n    -P {args.server_port} \ \n    --status=\"{args.status_port}\" \ \n    --advertise-address=\"{server_ip}\" \ \n    --path=\"{cluster_pd_api}\" \ \n    --config=conf/tidb.toml \ \n    --log-slow-query=\"{args.dir}/log/tidb_slow_query.log\" \ \n    --log-file=\"{args.dir}/log/tidb.log\" 2>> \"{args.dir}/log/tidb_stderr.log\" \n"
     else:
         print("Please input TIKV or PD or TIDB")
         sys.exit(1)
