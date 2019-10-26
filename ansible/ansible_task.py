@@ -104,7 +104,7 @@ context.CLIARGS = ImmutableDict(connection='smart', module_path=None, forks=10, 
                                 become_method=None, become_user=None, check=False, diff=False, verbosity=1)
 
 if __name__ == '__main__':
-    res = AnsibleTask('shell', 'ls ~')
+    res = AnsibleTask('shell', 'ls ~', 'localhost')
     # res = AnsibleTask('shell', 'hostname')
     # res = AnsibleTask("copy", "src=./hosts dest=~/")
     print(res.get_result())
