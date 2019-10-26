@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sqlite3
-from flask import Flask, request, g, render_template, redirect, url_for
+from flask import Flask, request, g, render_template
 from flask_socketio import SocketIO
 
 DATABASE = './data.db'
