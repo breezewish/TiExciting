@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import random
 import sqlite3
 from flask import Flask, request, g, render_template
 from flask_socketio import SocketIO
@@ -69,6 +70,36 @@ def sql_test():
 @app.route('/ansible', methods=['GET', 'POST'])
 def ansible_test():
     return render_template('ansible.html')
+
+
+@app.route('/websocket', methods=['GET'])
+def websocket_test():
+    return render_template('socket.html')
+
+
+@socketio.on('connect')
+def test_connect():
+    print('connect!')
+
+    t1 = random.randint(1, 10)
+    socketio.emit('server_response', {'data': t1})
+    socketio.sleep(5)
+    t2 = random.randint(1, 10)
+    socketio.emit('server_response', {'data': t2})
+    socketio.sleep(5)
+    t3 = random.randint(1, 10)
+    socketio.emit('server_response', {'data': t3})
+    print(t1, t2, t3)
+
+    # while True:
+    #     t = random.randint(1, 10)
+    #     socketio.emit('server_response', {'data': t})
+    #     socketio.sleep(5)
+
+
+@socketio.on('disconnect')
+def test_disconnect():
+    print('disconnect')
 
 
 if __name__ == '__main__':

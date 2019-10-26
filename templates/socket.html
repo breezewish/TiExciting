@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket测试</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<h2 id="t"></h2>
+<script type="text/javascript">
+    $(document).ready(function() {
+        // namespace = '/ws';
+        // var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+        var socket = io();
+        socket.on('connect', function() {
+            console.log('connect!');
+            socket.emit('my event', {data: 'I\'m connected!'});
+        });
+
+        socket.on('server_response', function(res) {
+            var t = res.data;
+            console.log(t);
+            $("#t").text(t);
+        });
+
+    });
+</script>
+
+</body>
+</html>
