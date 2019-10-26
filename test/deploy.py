@@ -106,8 +106,6 @@ def deploy(config):
                                                   [('pd_xiaohou', '192.168.233.128', 2380)]))
     task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/pd/ mode=0755', '192.168.233.128')
     print(task.get_result())
-    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
-    print(task.get_result())
 
     # tikv-servers
     for server_ip in ['192.168.233.129', '192.168.233.130', '192.168.233.131']:
@@ -116,14 +114,19 @@ def deploy(config):
         task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/tikv/ mode=0755', server_ip)
         print(task.get_result())
 
-    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', True)
-    print(task.get_result())
-
     # tidb-servers
     write_to_file('/tmp/launch.sh', gen_tidb_script('pd_xiaohou', '/home/tidb/data2', '192.168.233.128', 4000, 10080,
                                                     [('192.168.233.128', 2380)]))
     task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/tidb/ mode=0755', '192.168.233.128')
     print(task.get_result())
+
+    # 7. 启动
+    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
+    print(task.get_result())
+
+    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', True)
+    print(task.get_result())
+
     task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', 'tidb_servers', True)
     print(task.get_result())
 
@@ -138,14 +141,38 @@ if __name__ == '__main__':
     #                       [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
 
 '''
+
+in =>
+[{
+"uid": "pd_xiaohu",
+"role": "pd",
+"server_id": "192.168.1.10",
+"server_port": 8009,
+"status_port": 8010,
+"data_dir": "/home/tidb",
+}, {
+"uid": "pd_xiaohu",
+"role": "tidb",
+"server_id": "192.168.1.10",
+"server_port": 8009,
+"status_port": 8010,
+"data_dir": "/home/tidb",
+}]
+
+out =>
 {
   "task_id": 1,
-  "config": {} # 配置信息
-  "task": [{
-    "step": 1
+  "config": [{}, {}],
+  "status": "finished/unfinished/running",
+  "steps": [{
+    "step_id": 1
     "module": "xxx",
     "arg": "xxx",
-    "deps": [1, 2, 3]
+    "group": "xxx",
+    "background": False,
+    "extra": xxx
+    "deps": [1, 2, 3],
+    "status": "finished/unfinished/running"
   }]
 }
 '''
