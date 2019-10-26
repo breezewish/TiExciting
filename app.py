@@ -6,7 +6,6 @@ from flask import Flask, request, g, render_template
 from flask_socketio import SocketIO, emit
 
 from queue import Queue, Empty
-# from gevent.queue import Queue
 
 DATABASE = './data.db'
 

@@ -13,7 +13,8 @@ TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
 
 
 def gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster):
-    pd_cluster = ','.join(['http://%s:%d' % server for server in pd_cluster])
+    pd_cluster = ','.join(
+        [('%s:%d' if len(server) == 2 else '%s=http://%s:%d') % server for server in pd_cluster])
     template = template.replace('<uid>', uid)
     template = template.replace('<data_dir>', data_dir)
     template = template.replace('<server_ip>', server_ip)
@@ -39,6 +40,11 @@ def gen_tikv_script(uid, data_dir, server_ip, server_port, status_port, pd_clust
     with open('../shell/launch-tikv.template', 'r') as f:
         template = f.read()
     return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
+
+
+def write_to_file(path, content):
+    with open(path, 'w') as f:
+        f.write(content)
 
 
 '''
@@ -94,26 +100,41 @@ def deploy(config):
 
     # 6. 生成执行脚本
 
-    # write to tmp
-    # copy to server
+    # pd-servers
+    write_to_file('/tmp/launch.sh', gen_pd_script('pd_xiaohou', '/home/tidb/data1', '192.168.233.128', 2380, 2379,
+                                                  [('pd_xiaohou', '192.168.233.128', 2380)]))
+    task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/pd/ mode=0755', '192.168.233.128')
+    print(task.get_result())
+    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
+    print(task.get_result())
 
-    # 7. 执行命令
+    # tikv-servers
+    for server_ip in ['192.168.233.129', '192.168.233.130', '192.168.233.131']:
+        write_to_file('/tmp/launch.sh', gen_tikv_script('pd_xiaohou', '/home/tidb/data1', server_ip, 20160, 20180,
+                                                        [('192.168.233.128', 2380)]))
+        task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/tikv/ mode=0755', server_ip)
+        print(task.get_result())
 
-    task = AnsibleTask('shell', '', 'pd_servers')
+    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', True)
+    print(task.get_result())
 
-    task = AnsibleTask('shell', '', 'tikv_servers')
-
-    task = AnsibleTask('shell', '', 'tidb_servers')
+    # tidb-servers
+    write_to_file('/tmp/launch.sh', gen_tidb_script('pd_xiaohou', '/home/tidb/data2', '192.168.233.128', 4000, 10080,
+                                                    [('192.168.233.128', 2380)]))
+    task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/tidb/ mode=0755', '192.168.233.128')
+    print(task.get_result())
+    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', 'tidb_servers', True)
+    print(task.get_result())
 
 
 if __name__ == '__main__':
-    deploy()
-    print(gen_pd_script('pd_xiaohou', '~/data1', '192.168.233.128', 2379, 2380,
-                        [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
-    print(gen_tidb_script('pd_xiaohou', '~/data1', '192.168.233.128', 4000, 10080,
-                          [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
-    print(gen_tikv_script('pd_xiaohou', '~/data1', '192.168.233.129', 20160, 20180,
-                          [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
+    deploy(None)
+    # print(gen_pd_script('pd_xiaohou', '~/data1', '192.168.233.128', 2380, 2379,
+    #                     [('pd_xiaohou', '192.168.233.128', 2380), ('pd_xiaohou', '192.168.233.129', 2380)]))
+    # print(gen_tidb_script('pd_xiaohou', '~/data1', '192.168.233.128', 4000, 10080,
+    #                       [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
+    # print(gen_tikv_script('pd_xiaohou', '~/data1', '192.168.233.129', 20160, 20180,
+    #                       [('192.168.233.128', 2380), ('192.168.233.129', 2380)]))
 
 '''
 {
