@@ -1,0 +1,13 @@
+mkdir -p {{dir}}/data.pd 
+mkdir -p {{dir}}/log 
+
+bin/pd-server \ 
+    --name="{{uid}}" \ 
+    --client-urls="http://{{server_ip}}:{{status_port}}" \ 
+    --advertise-client-urls="http://{{server_ip}}:{{status_port}}" \ 
+    --peer-urls="http://{{server_ip}}:{{server_port}}" \ 
+    --advertise-peer-urls="{{server_ip}}:{{server_port}}" \ 
+    --data-dir="{{dir}}/data.pd" \ 
+    --initial-cluster="{{cluster_name_url}}" \ 
+    --config=conf/pd.toml \ 
+    --log-file="{{dir}}/log/pd.log" 2>> "{{dir}}/log/pd_stderr.log"

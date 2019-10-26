@@ -1,0 +1,11 @@
+mkdir -p {{dir}}/data 
+mkdir -p {{dir}}/log 
+
+bin/tikv-server \ 
+    --addr "0.0.0.0:{{status_port}}" \ 
+    --advertise-addr "{{server_ip}}:{{status_port}}" \ 
+    --status-addr "{{server_ip}}:{{server_port}}" \ 
+    --pd "{{cluster_pd_api}}" \ 
+    --data-dir "{{dir}}/data" \ 
+    --config conf/tikv.toml \ 
+    --log-file "{{dir}}/log/tikv.log" 2>> "{{dir}}/log/tikv_stderr.log" 

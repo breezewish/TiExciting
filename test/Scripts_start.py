@@ -4,6 +4,7 @@
 import json
 import argparse
 import sys
+from jinja2 import Environment, FileSystemLoader
 
 def main():
     args = parse_args()
@@ -23,18 +24,27 @@ def main():
         else:
             cluster_name_url += cluster_url[pd_ip] + f"=http://{pd_ip_port}"
             cluster_pd_api += f"{pd_ip_port}"
+    env = Environment(loader = FileSystemLoader('../templates'))
     if args.type == 'PD':
-        Script = f"mkdir -p {args.dir}/data.pd \nmkdir -p {args.dir}/log \n\nbin/pd-server \ \n    --name=\"{uid}\" \ \n    --client-urls=\"http://{server_ip}:{args.status_port}\" \ \n    --advertise-client-urls=\"http://{server_ip}:{args.status_port}\" \ \n    --peer-urls=\"http://{server_ip}:{args.server_port}\" \ \n    --advertise-peer-urls=\"{server_ip}:{args.server_port}\" \ \n    --data-dir=\"{args.dir}/data.pd\" \ \n    --initial-cluster=\"{cluster_name_url}\" \ \n    --config=conf/pd.toml \ \n    --log-file=\"{args.dir}/log/pd.log\" 2>> \"{args.dir}/log/pd_stderr.log\"\n"
+        template = env.get_template("pd-scripts.j2")
+        Script = template.render(dir=args.dir, server_ip=server_ip,
+            status_port=args.status_port, uid=uid, server_port=args.server_port,
+            cluster_name_url=cluster_name_url)
     elif args.type == "TIKV":
-        Script = f"mkdir -p {args.dir}/data \nmkdir -p {args.dir}/log \n\nbin/tikv-server \ \n    --addr \"0.0.0.0:{args.status_port}\" \ \n    --advertise-addr \"{server_ip}:{args.status_port}\" \ \n    --status-addr \"{server_ip}:{args.server_port}\" \ \n    --pd \"{cluster_pd_api}\" \ \n    --data-dir \"{args.dir}/data\" \ \n    --config conf/tikv.toml \ \n    --log-file \"{args.dir}/log/tikv.log\" 2>> \"{args.dir}/log/tikv_stderr.log\" \n"
+        template = env.get_template("tikv-scripts.j2")
+        Script = template.render(dir=args.dir, server_ip=server_ip,
+            status_port=args.status_port, uid=uid, server_port=args.server_port,
+            cluster_pd_api=cluster_pd_api)
     elif args.type == "TIDB":
-        Script = f"mkdir -p {args.dir}/data \nmkdir -p {args.dir}/log \n\nbin/tidb-server \ \n    -P {args.server_port} \ \n    --status=\"{args.status_port}\" \ \n    --advertise-address=\"{server_ip}\" \ \n    --path=\"{cluster_pd_api}\" \ \n    --config=conf/tidb.toml \ \n    --log-slow-query=\"{args.dir}/log/tidb_slow_query.log\" \ \n    --log-file=\"{args.dir}/log/tidb.log\" 2>> \"{args.dir}/log/tidb_stderr.log\" \n"
+        template = env.get_template("tidb-scripts.j2")
+        Script = template.render(dir=args.dir, server_ip=server_ip,
+            status_port=args.status_port, uid=uid, server_port=args.server_port,
+            cluster_pd_api=cluster_pd_api)
     else:
         print("Please input TIKV or PD or TIDB")
         sys.exit(1)
 
-    print(Script)
-
+    # print(Script)
     return Script
 
 

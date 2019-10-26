@@ -1,0 +1,11 @@
+mkdir -p {{dir}}/data
+mkdir -p {{dir}}/log
+
+bin/tidb-server \
+    -P {{server_port}} \
+    --status="{{status_port}}" \
+    --advertise-address="{{server_ip}}" \
+    --path="{{cluster_pd_api}}" \
+    --config=conf/tidb.toml \
+    --log-slow-query="{{dir}}/log/tidb_slow_query.log" \
+    --log-file="{{dir}}/log/tidb.log" 2>> "{{dir}}/log/tidb_stderr.log"
