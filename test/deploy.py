@@ -43,13 +43,13 @@ def deploy():
     tikv_path = '/tmp/%s/bin/tikv-server' % TIDB_DIR_NAME
     tidb_path = '/tmp/%s/bin/tidb-server' % TIDB_DIR_NAME
 
-    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/' % pd_path, 'pd_servers')
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, 'pd_servers')
     print(task.get_result())
 
-    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/' % tikv_path, 'tikv_servers')
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, 'tikv_servers')
     print(task.get_result())
 
-    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/' % tidb_path, 'tidb_servers')
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, 'tidb_servers')
     print(task.get_result())
 
     # 6. 生成执行脚本
