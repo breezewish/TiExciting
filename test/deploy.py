@@ -72,7 +72,8 @@ def deploy(config):
     task = AnsibleTask('stat', 'checksum_algorithm=sha256 path=/tmp/tidb.tar.gz')
     result = task.get_result()
     print(result)
-    if not result['exists'] or result['checksum'] != sha256:
+    stat = result['success']['localhost']['stat']
+    if not stat['exists'] or stat['checksum'] != sha256:
         # 3. 下载大礼包并检查sha256
         task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
         print(task.get_result())
