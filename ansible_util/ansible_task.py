@@ -39,10 +39,11 @@ class ResultCallback(CallbackBase):
 
 class AnsibleTask(object):
 
-    def __init__(self, module, command, group='localhost'):
+    def __init__(self, module, command, group='localhost', background=False):
         self.module = module
         self.command = command
         self.group = group
+        self.background = background
 
     def _run(self):
         loader = DataLoader()
@@ -54,12 +55,16 @@ class AnsibleTask(object):
         variable_manager = VariableManager(loader=loader, inventory=inventory)
 
         # create play with tasks
+        task = dict(action=dict(module=self.module, args=self.command), register='shell_out')
+        if self.background:
+            task['async'] = 10
+            task['poll'] = 0
         play_source = dict(
             name="Ansible Play",
             hosts=self.group,
             gather_facts='no',
             tasks=[
-                dict(action=dict(module=self.module, args=self.command), register='shell_out'),
+                task,
             ]
         )
         play = Play().load(play_source, variable_manager=variable_manager, loader=loader)

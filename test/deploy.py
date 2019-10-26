@@ -100,9 +100,9 @@ def deploy(config):
     # 6. 生成执行脚本
     write_to_file('/tmp/launch.sh', gen_pd_script('pd_xiaohou', '~/data1', '192.168.233.128', 2380, 2379,
                                                   [('pd_xiaohou', '192.168.233.128', 2380)]))
-    task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=~/TiExciting/pd/ mode=0755', '192.168.233.128')
+    task = AnsibleTask('copy', 'src=/tmp/launch.sh dest=/home/tidb/TiExciting/pd/ mode=0755', '192.168.233.128')
     print(task.get_result())
-    task = AnsibleTask('shell', 'bash ~/TiExciting/pd/launch.sh', 'pd_servers')
+    task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
     print(task.get_result())
 
     # write to tmp
