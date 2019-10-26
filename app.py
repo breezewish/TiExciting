@@ -5,11 +5,37 @@ import sqlite3
 from flask import Flask, request, g, render_template
 from flask_socketio import SocketIO, emit
 
+from queue import Queue, Empty
+# from gevent.queue import Queue
+
 DATABASE = './data.db'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
+
+q = Queue()
+
+
+def mock_consumer(thread_id):
+    while True:
+        try:
+            task = q.get_nowait()
+            print('worker %d fetch job %d, will take %d sec...' % (thread_id, task[0], task[1]))
+            socketio.sleep(task[1])
+            print('worker %d finish job %d..' % (thread_id, task[0]))
+        except Empty:
+            socketio.sleep(1)
+
+
+def mock_producer(thread_id):
+    task_id = 1
+    while True:
+        sleep_time = random.randint(1, 10)
+        q.put((task_id, sleep_time))
+        print('producer put', (task_id, sleep_time))
+        task_id += 1
+        socketio.sleep(1)
 
 
 def get_db():
@@ -49,6 +75,11 @@ def insert_db(query, args=()):
 
 @app.route('/')
 def hello():
+    socketio.start_background_task(target=mock_producer, thread_id=1)
+    socketio.start_background_task(target=mock_consumer, thread_id=2)
+    socketio.start_background_task(target=mock_consumer, thread_id=3)
+    socketio.start_background_task(target=mock_consumer, thread_id=4)
+    socketio.start_background_task(target=mock_consumer, thread_id=5)
     return f'Hello World'
 
 
