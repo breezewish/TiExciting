@@ -3,7 +3,7 @@
 import random
 import sqlite3
 from flask import Flask, request, g, render_template
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 
 DATABASE = './data.db'
 
@@ -77,10 +77,24 @@ def websocket_test():
     return render_template('socket.html')
 
 
+def background_thread():
+    count = 0
+    while True:
+        socketio.sleep(2)
+        count += 1
+        print(count)
+        socketio.emit('my response',
+                      {'data': 'Message from server', 'count': count})
+
+
+thread = None
+
+
 @socketio.on('connect')
 def test_connect():
     print('connect!')
 
+    '''
     t1 = random.randint(1, 10)
     socketio.emit('server_response', {'data': t1})
     socketio.sleep(5)
@@ -90,11 +104,17 @@ def test_connect():
     t3 = random.randint(1, 10)
     socketio.emit('server_response', {'data': t3})
     print(t1, t2, t3)
+    '''
 
     # while True:
     #     t = random.randint(1, 10)
     #     socketio.emit('server_response', {'data': t})
     #     socketio.sleep(5)
+
+    global thread
+    if thread is None:
+        thread = socketio.start_background_task(target=background_thread)
+    emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('disconnect')

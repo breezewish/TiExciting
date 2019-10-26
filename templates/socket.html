@@ -20,8 +20,8 @@
             socket.emit('my event', {data: 'I\'m connected!'});
         });
 
-        socket.on('server_response', function(res) {
-            var t = res.data;
+        socket.on('my response', function(res) {
+            var t = res.count;
             console.log(t);
             $("#t").text(t);
         });
