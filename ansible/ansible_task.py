@@ -16,23 +16,24 @@ import ansible.constants as C
 class ResultCallback(CallbackBase):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
+        super(ResultCallback, self).__init__(display=None)
+        # super().__init__(args, kwargs)
         self.ok = {}
         self.failed = {}
         self.unreachable = {}
 
     def v2_runner_on_ok(self, result):
-        host = result._host
+        host = result._host.get_name()
         self.ok[host] = result
         super().v2_runner_on_ok(result)
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
-        host = result._host
+        host = result._host.get_name()
         self.failed[host] = self._dump_results(result._result)
         super().v2_runner_on_failed(result, ignore_errors=False)
 
     def v2_runner_on_unreachable(self, result):
-        host = result._host
+        host = result._host.get_name()
         self.unreachable[host] = result
         super().v2_runner_on_unreachable(result)
 
@@ -71,7 +72,7 @@ class AnsibleTask(object):
                 variable_manager=variable_manager,
                 loader=loader,
                 passwords=passwords,
-                stdout_callback=results_callback,  # Use our custom callback instead of the ``default`` callback plugin
+                stdout_callback=self.results_callback,
             )
             result = tqm.run(play)
         finally:
@@ -85,7 +86,7 @@ class AnsibleTask(object):
         for host, result in self.results_callback.ok.items():
             info = {}
             info['stdout'] = result._result['stdout']
-            info['delta'] = result
+            info['delta'] = result._result['delta']
             result_all['success'][host] = info
 
         for host, result in self.results_callback.failed.items():
