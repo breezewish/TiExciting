@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>sqlite测试</title>
+</head>
+<body>
+
+<div>
+    {% for user in users %}
+    <p>{{user[1]}}</p>
+    {% endfor %}
+</div>
+
+<div>
+    <form method="post" action="sql-test">
+        <p><label for="name">User name:</label> <input type="text" id="name" name="name" /></p>
+    </form>
+</div>
+
+</body>
+</html>
