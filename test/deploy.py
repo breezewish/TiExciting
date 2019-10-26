@@ -12,7 +12,27 @@ TIDB_SHA256_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.sha256' % TID
 TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
 
 
-def deploy():
+def gen_pd_script():
+    pass
+
+
+def gen_tidb_script():
+    pass
+
+
+def gen_tikv_script():
+    pass
+
+
+'''
+{
+
+
+}
+'''
+
+
+def deploy(config):
     # 1. 下载sha256
     task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL)
     print(task.get_result())
@@ -54,7 +74,16 @@ def deploy():
 
     # 6. 生成执行脚本
 
+    # write to tmp
+    # copy to server
+
     # 7. 执行命令
+
+    task = AnsibleTask('shell', '', 'pd_servers')
+
+    task = AnsibleTask('shell', '', 'tikv_servers')
+
+    task = AnsibleTask('shell', '', 'tidb_servers')
 
 
 if __name__ == '__main__':
