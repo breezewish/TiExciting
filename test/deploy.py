@@ -14,7 +14,7 @@ TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
 
 def gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster):
     pd_cluster = ','.join(
-        [('http://%s:%d' if len(server) == 2 else '%s=http://%s:%d') % server for server in pd_cluster])
+        [('%s:%d' if len(server) == 2 else '%s=http://%s:%d') % server for server in pd_cluster])
     template = template.replace('<uid>', uid)
     template = template.replace('<data_dir>', data_dir)
     template = template.replace('<server_ip>', server_ip)
@@ -60,43 +60,43 @@ def write_to_file(path, content):
 
 def deploy(config):
     # 1. 下载sha256
-    # task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL)
-    # print(task.get_result())
+    task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL)
+    print(task.get_result())
 
-    # # 2. 取出sha256
-    # task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'")
-    # result = task.get_result()
-    # print(result)
-    # sha256 = result['success']['localhost']['stdout']
+    # 2. 取出sha256
+    task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'")
+    result = task.get_result()
+    print(result)
+    sha256 = result['success']['localhost']['stdout']
 
-    # task = AnsibleTask('stat', 'checksum_algorithm=sha256 path=/tmp/tidb.tar.gz')
-    # result = task.get_result()
-    # print(result)
-    # if not result['exists'] or result['checksum'] != sha256:
-    #     # 3. 下载大礼包并检查sha256
-    #     task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
-    #     print(task.get_result())
+    task = AnsibleTask('stat', 'checksum_algorithm=sha256 path=/tmp/tidb.tar.gz')
+    result = task.get_result()
+    print(result)
+    if not result['exists'] or result['checksum'] != sha256:
+        # 3. 下载大礼包并检查sha256
+        task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
+        print(task.get_result())
 
-    # # 4. 解压大礼包
-    # task = AnsibleTask('shell', 'tar -xzf /tmp/tidb.tar.gz')
-    # print(task.get_result())
+    # 4. 解压大礼包
+    task = AnsibleTask('shell', 'tar -xzf /tmp/tidb.tar.gz')
+    print(task.get_result())
 
-    # # 5. 分发大礼包
-    # # pd   => /tmp/{{TIDB_DIR_NAME}}/bin/pd-server
-    # # tikv => /tmp/{{TIDB_DIR_NAME}}/bin/tikv-server
-    # # tidb => /tmp/{{TIDB_DIR_NAME}}/bin/tidb-server
-    # pd_path = '/tmp/%s/bin/pd-server' % TIDB_DIR_NAME
-    # tikv_path = '/tmp/%s/bin/tikv-server' % TIDB_DIR_NAME
-    # tidb_path = '/tmp/%s/bin/tidb-server' % TIDB_DIR_NAME
+    # 5. 分发大礼包
+    # pd   => /tmp/{{TIDB_DIR_NAME}}/bin/pd-server
+    # tikv => /tmp/{{TIDB_DIR_NAME}}/bin/tikv-server
+    # tidb => /tmp/{{TIDB_DIR_NAME}}/bin/tidb-server
+    pd_path = '/tmp/%s/bin/pd-server' % TIDB_DIR_NAME
+    tikv_path = '/tmp/%s/bin/tikv-server' % TIDB_DIR_NAME
+    tidb_path = '/tmp/%s/bin/tidb-server' % TIDB_DIR_NAME
 
-    # task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, 'pd_servers')
-    # print(task.get_result())
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, 'pd_servers')
+    print(task.get_result())
 
-    # task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, 'tikv_servers')
-    # print(task.get_result())
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, 'tikv_servers')
+    print(task.get_result())
 
-    # task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, 'tidb_servers')
-    # print(task.get_result())
+    task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, 'tidb_servers')
+    print(task.get_result())
 
     # 6. 生成执行脚本
 
