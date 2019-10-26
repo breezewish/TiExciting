@@ -40,9 +40,10 @@ class ResultCallback(CallbackBase):
 
 class AnsibleTask(object):
 
-    def __init__(self, module, command):
+    def __init__(self, module, command, group='all'):
         self.module = module
         self.command = command
+        self.group = group
 
     def _run(self):
         loader = DataLoader()
@@ -56,7 +57,7 @@ class AnsibleTask(object):
         # create play with tasks
         play_source = dict(
             name="Ansible Play",
-            hosts='Client1',
+            hosts=self.group,
             gather_facts='no',
             tasks=[
                 dict(action=dict(module=self.module, args=self.command), register='shell_out'),
