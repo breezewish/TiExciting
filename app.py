@@ -2,10 +2,12 @@
 
 import random
 import sqlite3
-from flask import Flask, request, g, render_template
+from flask import Flask, request, g, render_template, jsonify
 from flask_socketio import SocketIO, emit
 
 from queue import Queue, Empty
+
+from deploy import gen_pd_script, gen_tidb_script, gen_tikv_script
 
 DATABASE = './data.db'
 
@@ -74,11 +76,11 @@ def insert_db(query, args=()):
 
 @app.route('/')
 def hello():
-    socketio.start_background_task(target=mock_producer, thread_id=1)
-    socketio.start_background_task(target=mock_consumer, thread_id=2)
-    socketio.start_background_task(target=mock_consumer, thread_id=3)
-    socketio.start_background_task(target=mock_consumer, thread_id=4)
-    socketio.start_background_task(target=mock_consumer, thread_id=5)
+    # socketio.start_background_task(target=mock_producer, thread_id=1)
+    # socketio.start_background_task(target=mock_consumer, thread_id=2)
+    # socketio.start_background_task(target=mock_consumer, thread_id=3)
+    # socketio.start_background_task(target=mock_consumer, thread_id=4)
+    # socketio.start_background_task(target=mock_consumer, thread_id=5)
     return f'Hello World'
 
 
@@ -150,6 +152,178 @@ def test_connect():
 @socketio.on('disconnect')
 def test_disconnect():
     print('disconnect')
+
+
+'''
+[{
+    "step_id": 1
+    "module": "xxx",
+    "arg": "xxx",
+    "group": "xxx",
+    "background": False,
+    "extra": xxx
+    "deps": [1, 2, 3],
+    "status": "finished/unfinished/running"
+  }]
+'''
+
+TIDB_VERSION = 'v3.0.3'
+TIDB_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.tar.gz' % TIDB_VERSION
+TIDB_SHA256_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.sha256' % TIDB_VERSION
+TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
+
+
+def gen_steps(config, hosts):
+    step_id = 1
+    steps = []
+
+    # 1. 下载sha256
+    step = {
+        'step_id': step_id,
+        'step_type': 1,
+        'arg': '',
+        'extra': None,
+        'deps': [],
+        'status': 'unfinished',
+        'result': None
+    }
+    steps.append(step)
+    step_id += 1
+
+    # 2. 取出sha256
+    step = {
+        'step_id': step_id,
+        'step_type': 2,
+        'arg': '',
+        'extra': None,
+        'deps': [1],
+        'status': 'unfinished',
+        'result': None
+    }
+    steps.append(step)
+    step_id += 1
+
+    # 3. 下载大礼包
+    step = {
+        'step_id': step_id,
+        'step_type': 3,
+        'arg': '',
+        'extra': None,
+        'deps': [2],
+        'status': 'unfinished',
+        'result': None
+    }
+    steps.append(step)
+    step_id += 1
+
+    # 4. 解压大礼包
+    step = {
+        'step_id': step_id,
+        'step_type': 4,
+        'arg': '',
+        'extra': None,
+        'deps': [3],
+        'status': 'unfinished',
+        'result': None
+    }
+    steps.append(step)
+    step_id += 1
+
+    # 5. 分发大礼包
+    step = {
+        'step_id': step_id,
+        'step_type': 5,
+        'arg': '',
+        'extra': None,
+        'deps': [4],
+        'status': 'unfinished',
+        'result': None
+    }
+    steps.append(step)
+    step_id += 1
+
+    pd_name_cluster = [(server['pd_id'], server['server_ip'], server['server_port']) for server in config if
+                       server['role'] == 'pd']
+    pd_cluster = [(server['server_ip'], server['server_port']) for server in config if server['role'] == 'pd']
+
+    deps = []
+    # 6. 生成执行脚本
+    for server in config:
+        if server['role'] == 'pd':
+            step = {
+                'step_id': step_id,
+                'step_type': 6,
+                'arg': gen_pd_script(server['pd_id'], server['data_dir'], server['server_ip'], server['server_port'],
+                                     server['status_port'], pd_name_cluster),
+                'extra': server,
+                'deps': [5],
+                'status': 'unfinished',
+                'result': None
+            }
+            deps.append(step_id)
+            steps.append(step)
+            step_id += 1
+        elif server['role'] == 'tikv':
+            step = {
+                'step_id': step_id,
+                'step_type': 7,
+                'arg': gen_tikv_script('', server['data_dir'], server['server_ip'], server['server_port'],
+                                       server['status_port'], pd_cluster),
+                'extra': server,
+                'deps': [5],
+                'status': 'unfinished',
+                'result': None
+            }
+            deps.append(step_id)
+            steps.append(step)
+            step_id += 1
+        elif server['role'] == 'tidb':
+            step = {
+                'step_id': step_id,
+                'step_type': 8,
+                'arg': gen_tidb_script('', server['data_dir'], server['server_ip'], server['server_port'],
+                                       server['status_port'], pd_cluster),
+                'extra': server,
+                'deps': [5],
+                'status': 'unfinished',
+                'result': None
+            }
+            deps.append(step_id)
+            steps.append(step)
+            step_id += 1
+
+    # 7. 执行脚本
+    step = {
+        'step_id': step_id,
+        'step_type': 9,
+        'arg': '',
+        'extra': None,
+        'deps': deps,
+        'status': 'unfinished',
+        'result': None
+    }
+    steps.append(step)
+    step_id += 1
+
+    return steps
+
+
+@app.route('/submitTask', methods=['POST'])
+def submit_task():
+    config = request.get_json()
+    hosts = {
+        'pd_servers': list(set([server['server_ip'] for server in config if server['role'] == 'pd'])),
+        'tidb_servers': list(set([server['server_ip'] for server in config if server['role'] == 'tidb'])),
+        'tikv_servers': list(set([server['server_ip'] for server in config if server['role'] == 'tikv']))
+    }
+    task = {
+        'task_id': 1,
+        'config': config,
+        'status': 'unfinished',
+        'hosts': hosts,
+        'steps': gen_steps(config, hosts)
+    }
+    return jsonify({'code': 0, 'task': task})
 
 
 if __name__ == '__main__':

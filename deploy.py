@@ -25,19 +25,19 @@ def gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port
 
 
 def gen_pd_script(uid, data_dir, server_ip, server_port, status_port, pd_cluster):
-    with open('../shell/launch-pd.template', 'r') as f:
+    with open('shell/launch-pd.template', 'r') as f:
         template = f.read()
     return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
 
 
 def gen_tidb_script(uid, data_dir, server_ip, server_port, status_port, pd_cluster):
-    with open('../shell/launch-tidb.template', 'r') as f:
+    with open('shell/launch-tidb.template', 'r') as f:
         template = f.read()
     return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
 
 
 def gen_tikv_script(uid, data_dir, server_ip, server_port, status_port, pd_cluster):
-    with open('../shell/launch-tikv.template', 'r') as f:
+    with open('shell/launch-tikv.template', 'r') as f:
         template = f.read()
     return gen_comm_script(template, uid, data_dir, server_ip, server_port, status_port, pd_cluster)
 
