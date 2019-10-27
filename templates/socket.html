@@ -17,13 +17,11 @@
         var socket = io();
         socket.on('connect', function() {
             console.log('connect!');
-            socket.emit('my event', {data: 'I\'m connected!'});
+            socket.emit('deploy', {task_id: 1});
         });
 
-        socket.on('my response', function(res) {
-            var t = res.count;
-            console.log(t);
-            $("#t").text(t);
+        socket.on('task', function(res) {
+            console.log(res);
         });
 
     });

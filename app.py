@@ -5,6 +5,8 @@ import sqlite3
 from flask import Flask, request, g, render_template, jsonify
 from flask_socketio import SocketIO, emit
 
+from ansible_util.ansible_task import AnsibleTask
+
 from queue import Queue, Empty
 
 from deploy import gen_pd_script, gen_tidb_script, gen_tikv_script
@@ -16,6 +18,9 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 q = Queue()
+
+g_task_id = 1
+g_task = {}
 
 
 def mock_consumer(thread_id):
@@ -37,6 +42,57 @@ def mock_producer(thread_id):
         print('producer put', (task_id, sleep_time))
         task_id += 1
         socketio.sleep(1)
+
+
+TIDB_VERSION = 'v3.0.3'
+TIDB_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.tar.gz' % TIDB_VERSION
+TIDB_SHA256_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.sha256' % TIDB_VERSION
+TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
+
+
+def worker_thread(worker_id):
+    while True:
+        try:
+            task_id, step = q.get_nowait()
+
+            socketio.emit('task', step)
+
+            print('worker [%d], do work (%d, %d)' % (worker_id, task_id, step['step_id']))
+
+            if step['step_type'] == 1:
+                task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL)
+                step['result'] = task.get_result()
+            elif step['step_type'] == 2:
+                task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'")
+                result = task.get_result()
+                step['result'] = result['success']['localhost']['stdout']
+
+            step['status'] = 'finished'
+            for step in g_task[task_id]['steps']:
+                if step['step_id'] in step['ddeps']:
+                    step['ddeps'].remove(step['step_id'])
+
+            socketio.emit('task', step)
+            print('worker [%d], do work done (%d, %d)' % (worker_id, task_id, step['step_id']))
+
+
+        except Empty:
+            socketio.sleep(1)
+
+
+def dispatcher_thread():
+    while True:
+        for _, task in g_task.items():
+            if task['status'] == 'running':
+                for step in task['steps']:
+                    if step['status'] == 'unfinished' and not step['ddeps']:
+                        step['status'] = 'running'
+                        q.put((task['task_id'], step))
+
+        socketio.sleep(1)
+
+
+dispatcher = None
 
 
 def get_db():
@@ -76,11 +132,6 @@ def insert_db(query, args=()):
 
 @app.route('/')
 def hello():
-    # socketio.start_background_task(target=mock_producer, thread_id=1)
-    # socketio.start_background_task(target=mock_consumer, thread_id=2)
-    # socketio.start_background_task(target=mock_consumer, thread_id=3)
-    # socketio.start_background_task(target=mock_consumer, thread_id=4)
-    # socketio.start_background_task(target=mock_consumer, thread_id=5)
     return f'Hello World'
 
 
@@ -126,27 +177,15 @@ thread = None
 def test_connect():
     print('connect!')
 
-    '''
-    t1 = random.randint(1, 10)
-    socketio.emit('server_response', {'data': t1})
-    socketio.sleep(5)
-    t2 = random.randint(1, 10)
-    socketio.emit('server_response', {'data': t2})
-    socketio.sleep(5)
-    t3 = random.randint(1, 10)
-    socketio.emit('server_response', {'data': t3})
-    print(t1, t2, t3)
-    '''
-
     # while True:
     #     t = random.randint(1, 10)
     #     socketio.emit('server_response', {'data': t})
     #     socketio.sleep(5)
 
-    global thread
-    if thread is None:
-        thread = socketio.start_background_task(target=background_thread)
-    emit('my response', {'data': 'Connected', 'count': 0})
+    # global thread
+    # if thread is None:
+    #     thread = socketio.start_background_task(target=background_thread)
+    # emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('disconnect')
@@ -154,23 +193,18 @@ def test_disconnect():
     print('disconnect')
 
 
-'''
-[{
-    "step_id": 1
-    "module": "xxx",
-    "arg": "xxx",
-    "group": "xxx",
-    "background": False,
-    "extra": xxx
-    "deps": [1, 2, 3],
-    "status": "finished/unfinished/running"
-  }]
-'''
+@socketio.on('deploy')
+def handle_deploy(message):
+    task = g_task[message['task_id']]
+    task['status'] = 'running'
+    print('deploy task', task['task_id'])
 
-TIDB_VERSION = 'v3.0.3'
-TIDB_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.tar.gz' % TIDB_VERSION
-TIDB_SHA256_URL = 'http://download.pingcap.org/tidb-%s-linux-amd64.sha256' % TIDB_VERSION
-TIDB_DIR_NAME = 'tidb-%s-linux-amd64' % TIDB_VERSION
+    global dispatcher
+    if dispatcher is None:
+        dispatcher = socketio.start_background_task(target=dispatcher_thread)
+        socketio.start_background_task(target=worker_thread, thread_id=1)
+        socketio.start_background_task(target=worker_thread, thread_id=2)
+        socketio.start_background_task(target=worker_thread, thread_id=3)
 
 
 def gen_steps(config, hosts):
@@ -184,6 +218,7 @@ def gen_steps(config, hosts):
         'arg': '',
         'extra': None,
         'deps': [],
+        'ddeps': [],
         'status': 'unfinished',
         'result': None
     }
@@ -197,6 +232,7 @@ def gen_steps(config, hosts):
         'arg': '',
         'extra': None,
         'deps': [1],
+        'ddeps': [1],
         'status': 'unfinished',
         'result': None
     }
@@ -210,6 +246,7 @@ def gen_steps(config, hosts):
         'arg': '',
         'extra': None,
         'deps': [2],
+        'ddeps': [2],
         'status': 'unfinished',
         'result': None
     }
@@ -223,6 +260,7 @@ def gen_steps(config, hosts):
         'arg': '',
         'extra': None,
         'deps': [3],
+        'ddeps': [3],
         'status': 'unfinished',
         'result': None
     }
@@ -236,6 +274,7 @@ def gen_steps(config, hosts):
         'arg': '',
         'extra': None,
         'deps': [4],
+        'ddeps': [4],
         'status': 'unfinished',
         'result': None
     }
@@ -257,6 +296,7 @@ def gen_steps(config, hosts):
                                      server['status_port'], pd_name_cluster),
                 'extra': server,
                 'deps': [5],
+                'ddeps': [5],
                 'status': 'unfinished',
                 'result': None
             }
@@ -271,6 +311,7 @@ def gen_steps(config, hosts):
                                        server['status_port'], pd_cluster),
                 'extra': server,
                 'deps': [5],
+                'ddeps': [5],
                 'status': 'unfinished',
                 'result': None
             }
@@ -285,6 +326,7 @@ def gen_steps(config, hosts):
                                        server['status_port'], pd_cluster),
                 'extra': server,
                 'deps': [5],
+                'ddeps': [5],
                 'status': 'unfinished',
                 'result': None
             }
@@ -298,7 +340,8 @@ def gen_steps(config, hosts):
         'step_type': 9,
         'arg': '',
         'extra': None,
-        'deps': deps,
+        'deps': list(deps),
+        'ddeps': list(deps),
         'status': 'unfinished',
         'result': None
     }
@@ -316,13 +359,20 @@ def submit_task():
         'tidb_servers': list(set([server['server_ip'] for server in config if server['role'] == 'tidb'])),
         'tikv_servers': list(set([server['server_ip'] for server in config if server['role'] == 'tikv']))
     }
+
+    global g_task_id
+
     task = {
-        'task_id': 1,
+        'task_id': g_task_id,
         'config': config,
         'status': 'unfinished',
         'hosts': hosts,
         'steps': gen_steps(config, hosts)
     }
+
+    g_task[g_task_id] = task
+    g_task_id += 1
+
     return jsonify({'code': 0, 'task': task})
 
 
