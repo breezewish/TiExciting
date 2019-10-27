@@ -60,8 +60,6 @@ def worker_thread(worker_id):
         try:
             task_id, step = q.get_nowait()
 
-            socketio.emit('task', {'finish': False, 'step': step})
-
             print('worker [%d], do work (%d, %d)' % (worker_id, task_id, step['step_id']))
 
             hosts = g_task[task_id]['host_path']
@@ -165,6 +163,7 @@ def dispatcher_thread():
                     if step['status'] == 'unfinished' and not step['ddeps']:
                         step['status'] = 'running'
                         q.put((task['task_id'], step))
+                        socketio.emit('task', {'finish': False, 'step': step})
                         done = False
 
                 if done:
