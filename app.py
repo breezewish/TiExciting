@@ -202,9 +202,9 @@ def handle_deploy(message):
     global dispatcher
     if dispatcher is None:
         dispatcher = socketio.start_background_task(target=dispatcher_thread)
-        socketio.start_background_task(target=worker_thread, thread_id=1)
-        socketio.start_background_task(target=worker_thread, thread_id=2)
-        socketio.start_background_task(target=worker_thread, thread_id=3)
+        socketio.start_background_task(target=worker_thread, worker_id=1)
+        socketio.start_background_task(target=worker_thread, worker_id=2)
+        socketio.start_background_task(target=worker_thread, worker_id=3)
 
 
 def gen_steps(config, hosts):
