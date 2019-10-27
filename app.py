@@ -60,7 +60,7 @@ def worker_thread(worker_id):
 
             print('worker [%d], do work (%d, %d)' % (worker_id, task_id, step['step_id']))
 
-            hosts = g_task[g_task_id]['host_path']
+            hosts = g_task[task_id]['host_path']
 
             if step['step_type'] == 1:
                 task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL, hosts)
