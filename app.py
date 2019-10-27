@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import os
 import uuid
 import random
 import sqlite3
-from flask import Flask, request, g, render_template, jsonify
+from flask import Flask, request, g, render_template, jsonify, send_from_directory
 from flask_socketio import SocketIO
 
-# from ansible_util.ansible_task import AnsibleTask
+from ansible_util.ansible_task import AnsibleTask
 
 from queue import Queue, Empty
 
@@ -210,9 +211,14 @@ def insert_db(query, args=()):
     db.commit()
 
 
-@app.route('/')
-def hello():
-    return app.send_static_file('index.html')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    path_dir = os.path.abspath("./ui")  # path react build
+    if path != "" and os.path.exists(os.path.join(path_dir, path)):
+        return send_from_directory(os.path.join(path_dir), path)
+    else:
+        return send_from_directory(os.path.join(path_dir), 'index.html')
 
 
 def show_users():
