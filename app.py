@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import uuid
 import random
 import sqlite3
 from flask import Flask, request, g, render_template, jsonify
@@ -9,7 +10,7 @@ from ansible_util.ansible_task import AnsibleTask
 
 from queue import Queue, Empty
 
-from deploy import gen_pd_script, gen_tidb_script, gen_tikv_script
+from deploy import gen_pd_script, gen_tidb_script, gen_tikv_script, write_to_file
 
 DATABASE = './data.db'
 
@@ -66,6 +67,63 @@ def worker_thread(worker_id):
                 task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'")
                 result = task.get_result()
                 step['result'] = result['success']['localhost']['stdout']
+            elif step['step_type'] == 3:
+
+                sha256 = None
+                dep_id = step['deps'][0]
+                for dep_step in g_task[task_id]['steps']:
+                    if dep_step['step_id'] == dep_id:
+                        sha256 = dep_step['result']
+
+                task = AnsibleTask('stat', 'checksum_algorithm=sha256 path=/tmp/tidb.tar.gz')
+                result = task.get_result()
+                stat = result['success']['localhost']['stat']
+                if not stat['exists'] or stat['checksum'] != sha256:
+                    task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
+                    task.get_result()
+            elif step['step_type'] == 4:
+                task = AnsibleTask('shell', 'tar -xzf /tmp/tidb.tar.gz')
+                step['result'] = task.get_result()
+            elif step['step_type'] == 5:
+                pd_path = '/tmp/%s/bin/pd-server' % TIDB_DIR_NAME
+                tikv_path = '/tmp/%s/bin/tikv-server' % TIDB_DIR_NAME
+                tidb_path = '/tmp/%s/bin/tidb-server' % TIDB_DIR_NAME
+
+                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, 'pd_servers')
+                task.get_result()
+
+                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, 'tikv_servers')
+                task.get_result()
+
+                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, 'tidb_servers')
+                task.get_result()
+            elif step['step_type'] == 6:
+                tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
+                write_to_file(tmp_path, step['arg'])
+                server = step['extra']
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/pd/launch.sh mode=0755' % tmp_path, server['server_ip'])
+                step['result'] = task.get_result()
+            elif step['step_type'] == 7:
+                tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
+                write_to_file(tmp_path, step['arg'])
+                server = step['extra']
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tikv/launch.sh mode=0755' % tmp_path, server['server_ip'])
+                step['result'] = task.get_result()
+            elif step['step_type'] == 8:
+                tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
+                write_to_file(tmp_path, step['arg'])
+                server = step['extra']
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tidb/launch.sh mode=0755' % tmp_path, server['server_ip'])
+                step['result'] = task.get_result()
+            elif step['step_type'] == 9:
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
+                task.get_result()
+
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', True)
+                task.get_result()
+
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', 'tidb_servers', True)
+                task.get_result()
             else:
                 socketio.sleep(1)
                 continue
