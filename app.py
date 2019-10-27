@@ -60,11 +60,13 @@ def worker_thread(worker_id):
 
             print('worker [%d], do work (%d, %d)' % (worker_id, task_id, step['step_id']))
 
+            hosts = g_task[g_task_id]['host_path']
+
             if step['step_type'] == 1:
-                task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL)
+                task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.sha256 force=yes' % TIDB_SHA256_URL, hosts)
                 step['result'] = task.get_result()
             elif step['step_type'] == 2:
-                task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'")
+                task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'", hosts)
                 result = task.get_result()
                 step['result'] = result['success']['localhost']['stdout']
             elif step['step_type'] == 3:
@@ -75,58 +77,58 @@ def worker_thread(worker_id):
                     if dep_step['step_id'] == dep_id:
                         sha256 = dep_step['result']
 
-                task = AnsibleTask('stat', 'checksum_algorithm=sha256 path=/tmp/tidb.tar.gz')
+                task = AnsibleTask('stat', 'checksum_algorithm=sha256 path=/tmp/tidb.tar.gz', hosts)
                 result = task.get_result()
                 stat = result['success']['localhost']['stat']
                 if not stat['exists'] or stat['checksum'] != sha256:
                     task = AnsibleTask('get_url',
-                                       'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
+                                       'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256), hosts)
                     task.get_result()
             elif step['step_type'] == 4:
-                task = AnsibleTask('shell', 'tar -xzf /tmp/tidb.tar.gz')
+                task = AnsibleTask('shell', 'tar -xzf /tmp/tidb.tar.gz', hosts)
                 step['result'] = task.get_result()
             elif step['step_type'] == 5:
                 pd_path = '/tmp/%s/bin/pd-server' % TIDB_DIR_NAME
                 tikv_path = '/tmp/%s/bin/tikv-server' % TIDB_DIR_NAME
                 tidb_path = '/tmp/%s/bin/tidb-server' % TIDB_DIR_NAME
 
-                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, 'pd_servers')
+                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, hosts, 'pd_servers')
                 task.get_result()
 
-                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, 'tikv_servers')
+                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, hosts, 'tikv_servers')
                 task.get_result()
 
-                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, 'tidb_servers')
+                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, hosts, 'tidb_servers')
                 task.get_result()
             elif step['step_type'] == 6:
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
                 write_to_file(tmp_path, step['arg'])
                 server = step['extra']
-                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/pd/launch.sh mode=0755' % tmp_path,
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/pd/launch.sh mode=0755' % tmp_path, hosts,
                                    server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 7:
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
                 write_to_file(tmp_path, step['arg'])
                 server = step['extra']
-                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tikv/launch.sh mode=0755' % tmp_path,
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tikv/launch.sh mode=0755' % tmp_path, hosts,
                                    server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 8:
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
                 write_to_file(tmp_path, step['arg'])
                 server = step['extra']
-                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tidb/launch.sh mode=0755' % tmp_path,
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tidb/launch.sh mode=0755' % tmp_path, hosts,
                                    server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 9:
-                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', hosts, True)
                 task.get_result()
 
-                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', True)
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', hosts, True)
                 task.get_result()
 
-                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', 'tidb_servers', True)
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', 'tidb_servers', hosts, True)
                 task.get_result()
             else:
                 socketio.sleep(1)
@@ -432,18 +434,27 @@ def gen_steps(config, hosts):
 def submit_task():
     config = request.get_json()
     hosts = {
-        'pd_servers': list(set([server['server_ip'] for server in config if server['role'] == 'pd'])),
-        'tidb_servers': list(set([server['server_ip'] for server in config if server['role'] == 'tidb'])),
-        'tikv_servers': list(set([server['server_ip'] for server in config if server['role'] == 'tikv']))
+        'pd_servers': sorted(set([server['server_ip'] for server in config if server['role'] == 'pd'])),
+        'tidb_servers': sorted(set([server['server_ip'] for server in config if server['role'] == 'tidb'])),
+        'tikv_servers': sorted(set([server['server_ip'] for server in config if server['role'] == 'tikv']))
     }
 
     global g_task_id
+
+    host_path = 'hosts/%d.hosts' % g_task_id
+
+    with open(host_path, 'w') as f:
+        for key, servers in hosts.items():
+            f.write('[%s]\n' % key)
+            for server in servers:
+                f.write('%s\n' % server)
 
     task = {
         'task_id': g_task_id,
         'config': config,
         'status': 'unfinished',
         'hosts': hosts,
+        'host_path': host_path,
         'steps': gen_steps(config, hosts)
     }
 

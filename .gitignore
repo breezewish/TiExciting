@@ -158,3 +158,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+hosts/*.hosts

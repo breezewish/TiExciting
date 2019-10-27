@@ -39,9 +39,10 @@ class ResultCallback(CallbackBase):
 
 class AnsibleTask(object):
 
-    def __init__(self, module, command, group='localhost', background=False):
+    def __init__(self, module, command, hosts, group='localhost', background=False):
         self.module = module
         self.command = command
+        self.hosts = hosts
         self.group = group
         self.background = background
 
@@ -51,7 +52,7 @@ class AnsibleTask(object):
 
         self.results_callback = ResultCallback()
 
-        inventory = InventoryManager(loader=loader, sources=['/etc/ansible/hosts'])
+        inventory = InventoryManager(loader=loader, sources=[self.hosts])
         variable_manager = VariableManager(loader=loader, inventory=inventory)
 
         # create play with tasks
