@@ -6,7 +6,7 @@ import sqlite3
 from flask import Flask, request, g, render_template, jsonify
 from flask_socketio import SocketIO
 
-from ansible_util.ansible_task import AnsibleTask
+# from ansible_util.ansible_task import AnsibleTask
 
 from queue import Queue, Empty
 
@@ -14,7 +14,9 @@ from deploy import gen_pd_script, gen_tidb_script, gen_tikv_script, write_to_fil
 
 DATABASE = './data.db'
 
-app = Flask(__name__)
+app = Flask(__name__,
+            static_url_path='',
+            static_folder='ui')
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
@@ -210,7 +212,7 @@ def insert_db(query, args=()):
 
 @app.route('/')
 def hello():
-    return 'Hello World'
+    return app.send_static_file('index.html')
 
 
 def show_users():
