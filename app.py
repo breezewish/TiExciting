@@ -154,6 +154,8 @@ def dispatcher_thread():
                 done = True
 
                 for step in task['steps']:
+                    if step['status'] == 'running' or step['status'] == 'unfinished':
+                        done = False
                     if step['status'] == 'unfinished' and not step['ddeps']:
                         step['status'] = 'running'
                         q.put((task['task_id'], step))
