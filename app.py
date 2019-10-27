@@ -15,9 +15,10 @@ from deploy import gen_pd_script, gen_tidb_script, gen_tikv_script, write_to_fil
 
 DATABASE = './data.db'
 
-app = Flask(__name__,
-            static_url_path='',
-            static_folder='ui')
+app = Flask(__name__)
+# app = Flask(__name__,
+#             static_url_path='',
+#             static_folder='ui')
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
@@ -214,7 +215,11 @@ def insert_db(query, args=()):
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
-    path_dir = os.path.abspath("./ui")  # path react build
+    path_dir = os.path.abspath("ui")  # path react build
+
+    print(path)
+    print(path_dir)
+
     if path != "" and os.path.exists(os.path.join(path_dir, path)):
         return send_from_directory(os.path.join(path_dir), path)
     else:
