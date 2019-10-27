@@ -67,14 +67,14 @@ def worker_thread(worker_id):
                 result = task.get_result()
                 step['result'] = result['success']['localhost']['stdout']
 
-            step['status'] = 'finished'
-            for step in g_task[task_id]['steps']:
-                if step['step_id'] in step['ddeps']:
-                    step['ddeps'].remove(step['step_id'])
-
-            socketio.emit('task', step)
             print('worker [%d], do work done (%d, %d)' % (worker_id, task_id, step['step_id']))
+            socketio.emit('task', step)
 
+            # 善后处理
+            step['status'] = 'finished'
+            for sstep in g_task[task_id]['steps']:
+                if step['step_id'] in sstep['ddeps']:
+                    sstep['ddeps'].remove(step['step_id'])
 
         except Empty:
             socketio.sleep(1)
@@ -132,7 +132,7 @@ def insert_db(query, args=()):
 
 @app.route('/')
 def hello():
-    return f'Hello World'
+    return 'Hello World'
 
 
 def show_users():
