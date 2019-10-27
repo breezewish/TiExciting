@@ -4,7 +4,7 @@ import uuid
 import random
 import sqlite3
 from flask import Flask, request, g, render_template, jsonify
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 
 from ansible_util.ansible_task import AnsibleTask
 
@@ -79,7 +79,8 @@ def worker_thread(worker_id):
                 result = task.get_result()
                 stat = result['success']['localhost']['stat']
                 if not stat['exists'] or stat['checksum'] != sha256:
-                    task = AnsibleTask('get_url', 'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
+                    task = AnsibleTask('get_url',
+                                       'url=%s dest=/tmp/tidb.tar.gz force=yes checksum=sha256:%s' % (TIDB_URL, sha256))
                     task.get_result()
             elif step['step_type'] == 4:
                 task = AnsibleTask('shell', 'tar -xzf /tmp/tidb.tar.gz')
@@ -101,19 +102,22 @@ def worker_thread(worker_id):
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
                 write_to_file(tmp_path, step['arg'])
                 server = step['extra']
-                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/pd/launch.sh mode=0755' % tmp_path, server['server_ip'])
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/pd/launch.sh mode=0755' % tmp_path,
+                                   server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 7:
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
                 write_to_file(tmp_path, step['arg'])
                 server = step['extra']
-                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tikv/launch.sh mode=0755' % tmp_path, server['server_ip'])
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tikv/launch.sh mode=0755' % tmp_path,
+                                   server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 8:
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
                 write_to_file(tmp_path, step['arg'])
                 server = step['extra']
-                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tidb/launch.sh mode=0755' % tmp_path, server['server_ip'])
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tidb/launch.sh mode=0755' % tmp_path,
+                                   server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 9:
                 task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', True)
@@ -246,16 +250,6 @@ thread = None
 @socketio.on('connect')
 def test_connect():
     print('connect!')
-
-    # while True:
-    #     t = random.randint(1, 10)
-    #     socketio.emit('server_response', {'data': t})
-    #     socketio.sleep(5)
-
-    # global thread
-    # if thread is None:
-    #     thread = socketio.start_background_task(target=background_thread)
-    # emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('disconnect')
