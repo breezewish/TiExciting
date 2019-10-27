@@ -94,13 +94,13 @@ def worker_thread(worker_id):
                 tikv_path = '/tmp/%s/bin/tikv-server' % TIDB_DIR_NAME
                 tidb_path = '/tmp/%s/bin/tidb-server' % TIDB_DIR_NAME
 
-                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/pd/ mode=0755' % pd_path, hosts, 'pd_servers')
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/pd/ mode=0755' % pd_path, hosts, 'pd_servers')
                 task.get_result()
 
-                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tikv/ mode=0755' % tikv_path, hosts, 'tikv_servers')
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tikv/ mode=0755' % tikv_path, hosts, 'tikv_servers')
                 task.get_result()
 
-                task = AnsibleTask('copy', 'src=%s dest=~/TiExciting/tidb/ mode=0755' % tidb_path, hosts, 'tidb_servers')
+                task = AnsibleTask('copy', 'src=%s dest=/home/tidb/TiExciting/tidb/ mode=0755' % tidb_path, hosts, 'tidb_servers')
                 task.get_result()
             elif step['step_type'] == 6:
                 tmp_path = '/tmp/%s.sh' % str(uuid.uuid4())
@@ -297,7 +297,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 1,
-        'msg': '下载sha256',
+        'msg': '下载二进制包校验码',
         'arg': '',
         'extra': None,
         'deps': [],
@@ -312,7 +312,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 2,
-        'msg': '读取sha256',
+        'msg': '检查本地二进制包完整性',
         'arg': '',
         'extra': None,
         'deps': [1],
@@ -327,7 +327,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 3,
-        'msg': '下载TIDB年度大礼包',
+        'msg': '下载二进制包',
         'arg': '',
         'extra': None,
         'deps': [2],
@@ -342,7 +342,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 4,
-        'msg': '解压TIDB年度大礼包',
+        'msg': '解压二进制包',
         'arg': '',
         'extra': None,
         'deps': [3],
@@ -357,7 +357,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 5,
-        'msg': '分发TIDB大礼包给随从们',
+        'msg': '分发二进制包',
         'arg': '',
         'extra': None,
         'deps': [4],
@@ -428,7 +428,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 9,
-        'msg': '启动TIDB集群',
+        'msg': '启动集群',
         'arg': '',
         'extra': None,
         'deps': list(deps),
