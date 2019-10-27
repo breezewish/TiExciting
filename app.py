@@ -55,7 +55,7 @@ def worker_thread(worker_id):
         try:
             task_id, step = q.get_nowait()
 
-            socketio.emit('task', step)
+            socketio.emit('task', {'finish': False, 'step': step})
 
             print('worker [%d], do work (%d, %d)' % (worker_id, task_id, step['step_id']))
 
@@ -66,12 +66,16 @@ def worker_thread(worker_id):
                 task = AnsibleTask('shell', "cat /tmp/tidb.sha256|awk '{print $1}'")
                 result = task.get_result()
                 step['result'] = result['success']['localhost']['stdout']
+            else:
+                socketio.sleep(1)
+                continue
 
+            step['status'] = 'finished'
+            print(step)
             print('worker [%d], do work done (%d, %d)' % (worker_id, task_id, step['step_id']))
-            socketio.emit('task', step)
+            socketio.emit('task', {'finish': False, 'step': step})
 
             # 善后处理
-            step['status'] = 'finished'
             for sstep in g_task[task_id]['steps']:
                 if step['step_id'] in sstep['ddeps']:
                     sstep['ddeps'].remove(step['step_id'])
@@ -84,10 +88,18 @@ def dispatcher_thread():
     while True:
         for _, task in g_task.items():
             if task['status'] == 'running':
+
+                done = True
+
                 for step in task['steps']:
                     if step['status'] == 'unfinished' and not step['ddeps']:
                         step['status'] = 'running'
                         q.put((task['task_id'], step))
+                        done = False
+
+                if done:
+                    task['status'] = 'finished'
+                    socketio.emit('task', {'finish': True})
 
         socketio.sleep(1)
 
@@ -215,6 +227,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 1,
+        'msg': '下载sha256',
         'arg': '',
         'extra': None,
         'deps': [],
@@ -229,6 +242,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 2,
+        'msg': '读取sha256',
         'arg': '',
         'extra': None,
         'deps': [1],
@@ -243,6 +257,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 3,
+        'msg': '下载TIDB年度大礼包',
         'arg': '',
         'extra': None,
         'deps': [2],
@@ -257,6 +272,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 4,
+        'msg': '解压TIDB年度大礼包',
         'arg': '',
         'extra': None,
         'deps': [3],
@@ -271,6 +287,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 5,
+        'msg': '分发TIDB大礼包给随从们',
         'arg': '',
         'extra': None,
         'deps': [4],
@@ -292,6 +309,7 @@ def gen_steps(config, hosts):
             step = {
                 'step_id': step_id,
                 'step_type': 6,
+                'msg': '为[%s:%d]生成PD部署脚本' % (server['server_id'], server['server_port']),
                 'arg': gen_pd_script(server['pd_id'], server['data_dir'], server['server_ip'], server['server_port'],
                                      server['status_port'], pd_name_cluster),
                 'extra': server,
@@ -307,6 +325,7 @@ def gen_steps(config, hosts):
             step = {
                 'step_id': step_id,
                 'step_type': 7,
+                'msg': '为[%s:%d]生成TIKV部署脚本' % (server['server_id'], server['server_port']),
                 'arg': gen_tikv_script('', server['data_dir'], server['server_ip'], server['server_port'],
                                        server['status_port'], pd_cluster),
                 'extra': server,
@@ -322,6 +341,7 @@ def gen_steps(config, hosts):
             step = {
                 'step_id': step_id,
                 'step_type': 8,
+                'msg': '为[%s:%d]生成TIDB部署脚本' % (server['server_id'], server['server_port']),
                 'arg': gen_tidb_script('', server['data_dir'], server['server_ip'], server['server_port'],
                                        server['status_port'], pd_cluster),
                 'extra': server,
@@ -338,6 +358,7 @@ def gen_steps(config, hosts):
     step = {
         'step_id': step_id,
         'step_type': 9,
+        'msg': '启动TIDB集群',
         'arg': '',
         'extra': None,
         'deps': list(deps),
