@@ -122,13 +122,13 @@ def worker_thread(worker_id):
                                    server['server_ip'])
                 step['result'] = task.get_result()
             elif step['step_type'] == 9:
-                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', 'pd_servers', hosts, True)
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/pd/launch.sh', hosts, 'pd_servers', True)
                 task.get_result()
 
-                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', 'tikv_servers', hosts, True)
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tikv/launch.sh', hosts, 'tikv_servers', True)
                 task.get_result()
 
-                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', 'tidb_servers', hosts, True)
+                task = AnsibleTask('shell', 'bash /home/tidb/TiExciting/tidb/launch.sh', hosts, 'tidb_servers', True)
                 task.get_result()
             else:
                 socketio.sleep(1)
