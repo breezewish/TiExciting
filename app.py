@@ -276,7 +276,7 @@ def test_disconnect():
 
 @socketio.on('deploy')
 def handle_deploy(message):
-    task = g_task[message['task_id']]
+    task = g_task[int(message['task_id'])]
     task['status'] = 'running'
     print('deploy task', task['task_id'])
 
