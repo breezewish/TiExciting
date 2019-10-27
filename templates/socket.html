@@ -11,13 +11,14 @@
 <h2 id="t"></h2>
 <script type="text/javascript">
     $(document).ready(function() {
-        // namespace = '/ws';
-        // var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
-
         var socket = io();
         socket.on('connect', function() {
             console.log('connect!');
             socket.emit('deploy', {task_id: 1});
+        });
+
+        socket.on('sync', function(res) {
+            console.log(res);
         });
 
         socket.on('task', function(res) {

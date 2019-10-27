@@ -263,6 +263,8 @@ def handle_deploy(message):
     task['status'] = 'running'
     print('deploy task', task['task_id'])
 
+    socketio.emit("sync", {'task': task})
+
     global dispatcher
     if dispatcher is None:
         dispatcher = socketio.start_background_task(target=dispatcher_thread)
@@ -361,7 +363,7 @@ def gen_steps(config, hosts):
             step = {
                 'step_id': step_id,
                 'step_type': 6,
-                'msg': '为[%s:%d]生成PD部署脚本' % (server['server_id'], server['server_port']),
+                'msg': '为[%s:%d]生成PD部署脚本' % (server['server_ip'], server['server_port']),
                 'arg': gen_pd_script(server['pd_id'], server['data_dir'], server['server_ip'], server['server_port'],
                                      server['status_port'], pd_name_cluster),
                 'extra': server,
@@ -377,7 +379,7 @@ def gen_steps(config, hosts):
             step = {
                 'step_id': step_id,
                 'step_type': 7,
-                'msg': '为[%s:%d]生成TIKV部署脚本' % (server['server_id'], server['server_port']),
+                'msg': '为[%s:%d]生成TIKV部署脚本' % (server['server_ip'], server['server_port']),
                 'arg': gen_tikv_script('', server['data_dir'], server['server_ip'], server['server_port'],
                                        server['status_port'], pd_cluster),
                 'extra': server,
@@ -393,7 +395,7 @@ def gen_steps(config, hosts):
             step = {
                 'step_id': step_id,
                 'step_type': 8,
-                'msg': '为[%s:%d]生成TIDB部署脚本' % (server['server_id'], server['server_port']),
+                'msg': '为[%s:%d]生成TIDB部署脚本' % (server['server_ip'], server['server_port']),
                 'arg': gen_tidb_script('', server['data_dir'], server['server_ip'], server['server_port'],
                                        server['status_port'], pd_cluster),
                 'extra': server,
@@ -446,7 +448,7 @@ def submit_task():
     g_task[g_task_id] = task
     g_task_id += 1
 
-    return jsonify({'code': 0, 'task': task})
+    return jsonify({'code': 0, 'task_id': task['task_id']})
 
 
 if __name__ == '__main__':
