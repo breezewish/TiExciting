@@ -441,7 +441,7 @@ def submit_task():
 
     global g_task_id
 
-    host_path = 'hosts/%d.hosts' % g_task_id
+    host_path = './hosts/%d.hosts' % g_task_id
 
     with open(host_path, 'w') as f:
         for key, servers in hosts.items():
